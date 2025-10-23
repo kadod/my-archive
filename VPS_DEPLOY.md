@@ -10,9 +10,17 @@
 
 ## アクセスURL（デプロイ後）
 
-- **ArchiveBox**: http://210.131.211.98
+### HTTPS経由（推奨・本格構成）
+- **ArchiveBox**: https://archive.210.131.211.98.nip.io
+- **Fess検索**: https://search.210.131.211.98.nip.io
+- **n8n**: https://n8n.yourdomain.com（既存）
+
+### 直接アクセス（開発・確認用）
+- **ArchiveBox**: http://210.131.211.98:8002
 - **Fess検索**: http://210.131.211.98:8081
 - **n8n**: http://210.131.211.98:5678（既存）
+
+※ nip.ioはワイルドカードDNSサービスです。独自ドメインを持っている場合は`.env`ファイルで設定してください。
 
 ## デプロイ手順
 
@@ -51,14 +59,29 @@ git clone <your-repository-url> my-archive
 cd my-archive
 ```
 
-### 5. デプロイ実行
+### 5. 環境変数の設定（オプション）
+
+独自ドメインを使用する場合：
+
+```bash
+# .envファイルを作成
+cp .env.example .env
+nano .env
+
+# DOMAINを自分のドメインに変更
+DOMAIN=yourdomain.com
+```
+
+ドメインがない場合はnip.ioが自動使用されます（設定不要）。
+
+### 6. デプロイ実行
 
 ```bash
 # VPS用の設定でサービス起動
 docker compose -f docker-compose.vps.yml up -d
 ```
 
-### 6. 起動確認
+### 7. 起動確認
 
 ```bash
 # サービス状態確認
@@ -70,12 +93,19 @@ docker compose -f docker-compose.vps.yml logs -f
 
 起動には数分かかります。全サービスが「Up」状態になるまで待ちます。
 
-### 7. アクセステスト
+### 8. アクセステスト
 
 ブラウザで以下にアクセス：
 
-- ArchiveBox: http://210.131.211.98
+**HTTPS経由（推奨）：**
+- ArchiveBox: https://archive.210.131.211.98.nip.io
+- Fess検索: https://search.210.131.211.98.nip.io
+
+**直接アクセス：**
+- ArchiveBox: http://210.131.211.98:8002
 - Fess: http://210.131.211.98:8081
+
+※ 初回アクセス時、Let's Encrypt証明書取得に数秒かかる場合があります。
 
 ## ファイアウォール設定
 
@@ -101,6 +131,40 @@ ufw enable
 # 状態確認
 ufw status
 ```
+
+## システムアーキテクチャ
+
+### 本格構成の特徴
+
+```
+インターネット
+    ↓ HTTPS (443)
+[Traefik - 既存のn8nリバースプロキシ] ← Let's Encrypt自動証明書取得
+    ├→ archive.210.131.211.98.nip.io → ArchiveBox:8000
+    ├→ search.210.131.211.98.nip.io → Fess:8080
+    └→ n8n.yourdomain.com → n8n:5678 (既存)
+
+[ArchiveBox] → archivebox-data volume
+    ↓ クロール対象
+[Fess 14.17.0] → fess-data volume
+    ↓ 検索クエリ
+[Elasticsearch 8.13.4] → elasticsearch-data volume (1GB RAM割り当て)
+```
+
+### 外部Elasticsearchの利点
+
+- **パフォーマンスチューニング**: メモリ設定の最適化が可能
+- **スケーラビリティ**: データ量に応じた拡張が容易
+- **バージョン管理**: Fessと互換性のあるESバージョンを明示的に指定
+- **安定性**: Fess 14.17.0 + ES 8.13.4は検証済みの組み合わせ
+
+### HTTPS対応
+
+既存のTraefikを活用してHTTPS化：
+- Let's Encrypt証明書の自動取得・更新
+- HTTP→HTTPSの自動リダイレクト
+- ポート80/443の競合回避（Traefikが一元管理）
+- 独自ドメインまたはnip.ioサブドメイン対応
 
 ## Fess検索設定
 

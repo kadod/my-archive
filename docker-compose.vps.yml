@@ -34,13 +34,14 @@ services:
         volumes:
             - archivebox-data:/data
         networks:
-            - webgateway
+            - n8n-compose_default
             - default
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.archivebox.rule=Host(`archive.${DOMAIN:-210.131.211.98.nip.io}`)"
-            - "traefik.http.routers.archivebox.entrypoints=websecure"
-            - "traefik.http.routers.archivebox.tls.certresolver=letsencrypt"
+            - "traefik.http.routers.archivebox.entrypoints=web,websecure"
+            - "traefik.http.routers.archivebox.tls=true"
+            - "traefik.http.routers.archivebox.tls.certresolver=mytlschallenge"
             - "traefik.http.services.archivebox.loadbalancer.server.port=8000"
         restart: unless-stopped
 
@@ -58,13 +59,14 @@ services:
         volumes:
             - fess-data:/var/lib/fess
         networks:
-            - webgateway
+            - n8n-compose_default
             - default
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.fess.rule=Host(`search.${DOMAIN:-210.131.211.98.nip.io}`)"
-            - "traefik.http.routers.fess.entrypoints=websecure"
-            - "traefik.http.routers.fess.tls.certresolver=letsencrypt"
+            - "traefik.http.routers.fess.entrypoints=web,websecure"
+            - "traefik.http.routers.fess.tls=true"
+            - "traefik.http.routers.fess.tls.certresolver=mytlschallenge"
             - "traefik.http.services.fess.loadbalancer.server.port=8080"
         depends_on:
             - elasticsearch
@@ -92,7 +94,7 @@ services:
         restart: unless-stopped
 
 networks:
-    webgateway:
+    n8n-compose_default:
         external: true
     default:
         driver: bridge

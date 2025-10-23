@@ -53,7 +53,6 @@ services:
             - "8081:8080"  # 直接アクセス用（オプション）
         environment:
             - TZ=Asia/Tokyo
-            - FESS_DICTIONARY_PATH=/var/lib/fess/dict/
             - fess_es_http_url=http://elasticsearch:9200
             - fess_es_transport_addresses=elasticsearch:9300
         volumes:

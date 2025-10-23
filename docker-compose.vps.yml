@@ -1,6 +1,5 @@
 volumes:
     archivebox-data:
-    elasticsearch-data:
     fess-data:
 
 services:
@@ -8,7 +7,7 @@ services:
         image: archivebox/archivebox:latest
         command: server --quick-init 0.0.0.0:8000
         ports:
-            - "8000:8000"
+            - "8002:8000"  # email-automationとのポート競合を避けるため8002に変更
         environment:
             - ALLOWED_HOSTS=*
             - PUBLIC_INDEX=True
@@ -37,46 +36,40 @@ services:
         image: codelibs/fess:latest
         ports:
             - "8081:8080"  # n8nとのポート競合を避けるため8081に変更
-        depends_on:
-            - elasticsearch
         environment:
             - TZ=Asia/Tokyo
-            - FESS_DICTIONARY_PATH=/var/lib/elasticsearch/config/dictionary/
-            - ES_HTTP_URL=http://elasticsearch:9200
-            - ES_TRANSPORT_URL=elasticsearch:9300
-            - ES_HTTP_PROTOCOL=http
         volumes:
             - fess-data:/var/lib/fess
         restart: unless-stopped
 
-    elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-        environment:
-            - discovery.type=single-node
-            - cluster.name=fess-es
-            - bootstrap.memory_lock=true
-            - xpack.security.enabled=false
-            - "ES_JAVA_OPTS=-Xms2g -Xmx2g"  # 6GBメモリを活用
-        ulimits:
-            memlock:
-                soft: -1
-                hard: -1
-            nofile:
-                soft: 65536
-                hard: 65536
-        volumes:
-            - elasticsearch-data:/usr/share/elasticsearch/data
-        restart: unless-stopped
+#    elasticsearch:
+#        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+#        environment:
+#            - discovery.type=single-node
+#            - cluster.name=fess-es
+#            - bootstrap.memory_lock=true
+#            - xpack.security.enabled=false
+#            - "ES_JAVA_OPTS=-Xms2g -Xmx2g"  # 6GBメモリを活用
+#        ulimits:
+#            memlock:
+#                soft: -1
+#                hard: -1
+#            nofile:
+#                soft: 65536
+#                hard: 65536
+#        volumes:
+#            - elasticsearch-data:/usr/share/elasticsearch/data
+#        restart: unless-stopped
 
-    nginx:
-        image: nginx:alpine
-        ports:
-            - "80:80"
-        environment:
-            - TZ=Asia/Tokyo
-        volumes:
-            - ./nginx.vps.conf:/etc/nginx/nginx.conf:ro
-            - archivebox-data:/var/www/archive:ro
-        depends_on:
-            - archivebox
-        restart: unless-stopped
+#    nginx:
+#        image: nginx:alpine
+#        ports:
+#            - "80:80"
+#        environment:
+#            - TZ=Asia/Tokyo
+#        volumes:
+#            - ./nginx.vps.conf:/etc/nginx/nginx.conf:ro
+#            - archivebox-data:/var/www/archive:ro
+#        depends_on:
+#            - archivebox
+#        restart: unless-stopped
